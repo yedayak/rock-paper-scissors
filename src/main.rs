@@ -17,7 +17,6 @@ pub enum TokenType {
     PlaySeparator,
     Rival,
     Vs,
-    Whitespace,
 }
 
 #[derive(Clone, Debug)]
@@ -80,17 +79,11 @@ impl Parser {
                     r#type: TokenType::PlaySeparator,
                 })
             } else if ch.is_whitespace() {
-                let mut new_token_text = String::new();
-                let mut next_token_ch = self.peek();
-                while next_token_ch.is_some() && next_token_ch.unwrap().is_whitespace() {
-                    new_token_text.push(self.consume().unwrap());
-                    next_token_ch = self.peek();
+                let mut possible_whitespace = self.peek();
+                while possible_whitespace.is_some() && possible_whitespace.unwrap().is_whitespace() {
+                    self.consume();
+                    possible_whitespace = self.peek();
                 }
-                self.tokens.push(Token {
-                    text: new_token_text,
-                    r#type: TokenType::Whitespace,
-                });
-                */
             } else if ch == '\'' {
                 let mut rival_name = String::from(self.consume().unwrap());
                 while self.peek().is_some() && self.peek().unwrap() != '\'' {
