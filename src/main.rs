@@ -1,5 +1,5 @@
 fn main() {
-    let mut parser = Parser::new("paper ~scIssors\nrock-rock".into());
+    let mut parser = Parser::new("'yedaya' vs 'john' paper ~scIssors\nrock-rock".into());
     println!("{:?}", parser.parse_tokens());
 }
 
@@ -14,8 +14,9 @@ pub enum TokenType {
     Scissors,
     Rock,
     Paper,
-    Duel,
-    Rivals,
+    PlaySeparator,
+    Rival,
+    Vs,
     Whitespace,
 }
 
@@ -58,9 +59,12 @@ impl Parser {
                 }
                 let normalized_token_text = new_token_text.to_lowercase();
                 let token_type = match normalized_token_text.as_str() {
+                    // Valid plays
                     "rock" => TokenType::Rock,
                     "paper" => TokenType::Paper,
                     "scissors" => TokenType::Scissors,
+                    // Other possible tokens
+                    "vs" => TokenType::Vs,
                     unrecognized_token => panic!("unrecognized token {}!", unrecognized_token),
                 };
                 let token = Token {
@@ -73,7 +77,7 @@ impl Parser {
                 let consumed = self.consume().unwrap();
                 self.tokens.push(Token {
                     text: String::from(consumed),
-                    r#type: TokenType::Duel,
+                    r#type: TokenType::PlaySeparator,
                 })
             } else if ch.is_whitespace() {
                 let mut new_token_text = String::new();
@@ -85,6 +89,22 @@ impl Parser {
                 self.tokens.push(Token {
                     text: new_token_text,
                     r#type: TokenType::Whitespace,
+                });
+                */
+            } else if ch == '\'' {
+                let mut rival_name = String::from(self.consume().unwrap());
+                while self.peek().is_some() && self.peek().unwrap() != '\'' {
+                    rival_name.push(self.consume().unwrap());
+                }
+                if self.peek().is_none() {
+                    panic!("Unclosed single quotes: Rival name must be inclosed in single quotes")
+                } else {
+                    // The closing quote
+                    rival_name.push(self.consume().unwrap())
+                }
+                self.tokens.push(Token {
+                    text: rival_name,
+                    r#type: TokenType::Rival,
                 });
             } else {
                 panic!("Unrecognized characters");
