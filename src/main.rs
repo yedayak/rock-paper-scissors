@@ -85,16 +85,18 @@ impl Parser {
                     possible_whitespace = self.peek();
                 }
             } else if ch == '\'' {
-                let mut rival_name = String::from(self.consume().unwrap());
+                // Getting the name in quotes (Without the quotes..)
+                let mut rival_name = String::new();
+                // quote
+                self.consume();
                 while self.peek().is_some() && self.peek().unwrap() != '\'' {
                     rival_name.push(self.consume().unwrap());
                 }
                 if self.peek().is_none() {
                     panic!("Unclosed single quotes: Rival name must be inclosed in single quotes")
-                } else {
-                    // The closing quote
-                    rival_name.push(self.consume().unwrap())
                 }
+                // Getting the closing quote
+                self.consume();
                 self.tokens.push(Token {
                     text: rival_name,
                     r#type: TokenType::Rival,
