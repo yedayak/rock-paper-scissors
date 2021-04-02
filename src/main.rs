@@ -1,28 +1,58 @@
+use std::iter::Peekable;
+
 fn main() {
-    let mut parser = Parser::new("'yedaya' vs 'john' paper ~scIssors\nrock-rock".into());
-    println!("{:?}", parser.parse_tokens());
+    let mut parser = TokenParser::new("'yedaya' vs 'john' paper ~scIssors\nrock-rock 'jake'  vs  'percy' paper-paper rock-rock".into());
+    let tokens = parser.parse_tokens();
+    println!("{:?}", tokens);
+    let mut play_creator = PlayGenerator::new(&tokens);
+    let plays = play_creator.create_plays();
+    println!("{:?}", plays);
 }
 
-pub struct Parser {
+pub struct TokenParser {
     text: String,
     index: usize,
     tokens: Vec<Token>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Copy, PartialEq)]
 pub enum TokenType {
-    Scissors,
-    Rock,
-    Paper,
+    Move(Move),
     PlaySeparator,
     Rival,
     Vs,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Copy, PartialEq)]
+pub enum Move {
+    Rock,
+    Paper,
+    Scissors,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct Token {
     r#type: TokenType,
     text: String,
+}
+
+#[derive(Debug)]
+pub struct Play {
+    player1: String,
+    player2: String,
+    move1: Move,
+    move2: Move,
+}
+
+impl Play {
+    pub fn new(player1: String, player2: String, move1: Move, move2: Move) -> Self {
+        Self {
+            player1,
+            player2,
+            move1,
+            move2,
+        }
+    }
 }
 
 fn can_be_in_move(ch: char) -> bool {
@@ -33,7 +63,7 @@ fn is_duel_sign(ch: char) -> bool {
     ch == '-' || ch == '~'
 }
 
-impl Parser {
+impl TokenParser {
     pub fn new(text: String) -> Self {
         Self {
             text: text,
@@ -58,10 +88,10 @@ impl Parser {
                 }
                 let normalized_token_text = new_token_text.to_lowercase();
                 let token_type = match normalized_token_text.as_str() {
-                    // Valid plays
-                    "rock" => TokenType::Rock,
-                    "paper" => TokenType::Paper,
-                    "scissors" => TokenType::Scissors,
+                    // Valid moves
+                    "rock" => TokenType::Move(Move::Rock),
+                    "paper" => TokenType::Move(Move::Paper),
+                    "scissors" => TokenType::Move(Move::Scissors),
                     // Other possible tokens
                     "vs" => TokenType::Vs,
                     unrecognized_token => panic!("unrecognized token {}!", unrecognized_token),
@@ -120,5 +150,62 @@ impl Parser {
 
     pub fn raw_text(&self) -> String {
         self.text.clone()
+    }
+}
+
+pub struct PlayGenerator<'a> {
+    token_iterator: Peekable<std::slice::Iter<'a, Token>>,
+}
+
+impl<'a> PlayGenerator<'a> {
+    pub fn new(tokens: &'a Vec<Token>) -> Self {
+        Self {
+            token_iterator: tokens.iter().peekable(),
+        }
+    }
+
+    pub fn create_plays(&mut self) -> Vec<Play> {
+        let mut plays = Vec::<Play>::new();
+        let mut current_player1 = None;
+        let mut current_player2 = None;
+        while self.token_iterator.peek().is_some() {
+            let token = self.token_iterator.next().unwrap();
+            match token.r#type {
+                TokenType::Rival => {
+                    current_player1 = Some(&token.text);
+                    if self.token_iterator.next().unwrap().r#type == TokenType::Vs {
+                        current_player2 = Some(&self.token_iterator.next().unwrap().text);
+                    }
+                }
+                TokenType::Move(move1) => {
+                    if self
+                        .token_iterator
+                        .next()
+                        .expect("Tokens ended unexpectedly")
+                        .r#type
+                        != TokenType::PlaySeparator
+                    {
+                        panic!(
+                            "No play separator between each move: use ~ or - between your plays."
+                        );
+                    }
+                    if let TokenType::Move(move2)= self
+                        .token_iterator
+                        .next()
+                        .expect("Only one play found - You can't play against yourself ;}").r#type {
+                    plays.push(Play::new(
+                        current_player1.unwrap().to_string(),
+                        current_player2.unwrap().to_string(),
+                        move1,
+                        move2,
+                    ));
+                }
+                    println!("{:?}", move1)
+                }
+                TokenType::PlaySeparator => {}
+                TokenType::Vs => {}
+            }
+        }
+        plays
     }
 }
