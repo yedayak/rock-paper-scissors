@@ -66,7 +66,7 @@ fn is_duel_sign(ch: char) -> bool {
 impl TokenParser {
     pub fn new(text: String) -> Self {
         Self {
-            text: text,
+            text,
             index: 0,
             tokens: Vec::new(),
         }
@@ -94,7 +94,7 @@ impl TokenParser {
                     "scissors" => TokenType::Move(Move::Scissors),
                     // Other possible tokens
                     "vs" => TokenType::Vs,
-                    unrecognized_token => panic!("unrecognized token {}!", unrecognized_token),
+                    unrecognized_token => panic!("unrecognized token \"'{}\"!", unrecognized_token),
                 };
                 let token = Token {
                     text: new_token_text,
@@ -110,7 +110,8 @@ impl TokenParser {
                 })
             } else if ch.is_whitespace() {
                 let mut possible_whitespace = self.peek();
-                while possible_whitespace.is_some() && possible_whitespace.unwrap().is_whitespace() {
+                while possible_whitespace.is_some() && possible_whitespace.unwrap().is_whitespace()
+                {
                     self.consume();
                     possible_whitespace = self.peek();
                 }
