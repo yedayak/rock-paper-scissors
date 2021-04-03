@@ -1,7 +1,10 @@
 use std::iter::Peekable;
 
 fn main() {
-    let mut parser = TokenParser::new("'yedaya' vs 'john' paper ~scIssors\nrock-rock 'jake'  vs  'percy' paper-paper rock-rock".into());
+    let mut parser = TokenParser::new(
+        "'yedaya' vs 'john' paper ~scIssors\nrock-rock 'jake'  vs  'percy' paper-paper rock-rock"
+            .into(),
+    );
     let tokens = parser.parse_tokens();
     println!("{:?}", tokens);
     let mut play_creator = PlayGenerator::new(&tokens);
@@ -32,7 +35,7 @@ pub enum Move {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Token {
-    r#type: TokenType,
+    ttype: TokenType,
     text: String,
 }
 
@@ -98,7 +101,7 @@ impl TokenParser {
                 };
                 let token = Token {
                     text: new_token_text,
-                    r#type: token_type,
+                    ttype: token_type,
                 };
                 self.tokens.push(token)
             } else if is_duel_sign(ch) {
@@ -106,7 +109,7 @@ impl TokenParser {
                 let consumed = self.consume().unwrap();
                 self.tokens.push(Token {
                     text: String::from(consumed),
-                    r#type: TokenType::PlaySeparator,
+                    ttype: TokenType::PlaySeparator,
                 })
             } else if ch.is_whitespace() {
                 let mut possible_whitespace = self.peek();
@@ -130,7 +133,7 @@ impl TokenParser {
                 self.consume();
                 self.tokens.push(Token {
                     text: rival_name,
-                    r#type: TokenType::Rival,
+                    ttype: TokenType::Rival,
                 });
             } else {
                 panic!("Unrecognized characters");
@@ -140,6 +143,8 @@ impl TokenParser {
         self.tokens.to_vec()
     }
 
+    // TODO: maybe change peek() and consume() to use a stored iterator
+    // instead of recreating one each time
     fn peek(&self) -> Option<char> {
         self.text.chars().nth(self.index)
     }
@@ -171,10 +176,10 @@ impl<'a> PlayGenerator<'a> {
         let mut current_player2 = None;
         while self.token_iterator.peek().is_some() {
             let token = self.token_iterator.next().unwrap();
-            match token.r#type {
+            match token.ttype {
                 TokenType::Rival => {
                     current_player1 = Some(&token.text);
-                    if self.token_iterator.next().unwrap().r#type == TokenType::Vs {
+                    if self.token_iterator.next().unwrap().ttype == TokenType::Vs {
                         current_player2 = Some(&self.token_iterator.next().unwrap().text);
                     }
                 }
@@ -183,24 +188,26 @@ impl<'a> PlayGenerator<'a> {
                         .token_iterator
                         .next()
                         .expect("Tokens ended unexpectedly")
-                        .r#type
+                        .ttype
                         != TokenType::PlaySeparator
                     {
                         panic!(
                             "No play separator between each move: use ~ or - between your plays."
                         );
                     }
-                    if let TokenType::Move(move2)= self
+                    if let TokenType::Move(move2) = self
                         .token_iterator
                         .next()
-                        .expect("Only one play found - You can't play against yourself ;}").r#type {
-                    plays.push(Play::new(
-                        current_player1.unwrap().to_string(),
-                        current_player2.unwrap().to_string(),
-                        move1,
-                        move2,
-                    ));
-                }
+                        .expect("Only one play found - You can't play against yourself ;}")
+                        .ttype
+                    {
+                        plays.push(Play::new(
+                            current_player1.unwrap().to_string(),
+                            current_player2.unwrap().to_string(),
+                            move1,
+                            move2,
+                        ));
+                    }
                     println!("{:?}", move1)
                 }
                 TokenType::PlaySeparator => {}
